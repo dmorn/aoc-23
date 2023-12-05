@@ -10,47 +10,83 @@ test "read game configurations" {
         \\Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
     ;
 
-    try expect(try find_impossible(example) == 8);
+    try expect(try findPossible(example, 12, 13, 14) == 8);
 }
 
-const GameInfo = struct {
-    id: i32,
-    red: i32,
-    green: i32,
-    blue: i32,
+const Game = struct {
+    id: i32 = 0,
+    red: i32 = 0,
+    green: i32 = 0,
+    blue: i32 = 0,
 
-    pub fn parse_revealed(self: GameInfo, chars: []const u8) !GameInfo {
-        const it = std.mem.splitAny(u8, chars, " ");
-        _ = it.next(); // Game
-        self.id = try std.fmt.parseInt(i32, std.mem.trimRight(u8, it.next(), ":"), 10);
+    pub fn fromLine(chars: []const u8) !Game {
+        var it = std.mem.splitAny(u8, chars, " ");
+        _ = it.next().?; // Game
+        const id = try std.fmt.parseInt(i32, std.mem.trimRight(u8, it.next().?, ":"), 10);
 
-        var lastCount: i32 = 0;
-        for (it, 0..) |token, i| {
-            if (i % 2 == 0) {
+        var r: i32 = 0;
+        var g: i32 = 0;
+        var b: i32 = 0;
+
+        var last: i32 = 0;
+        var i: i32 = 0;
+        while (it.next()) |token| {
+            defer i += 1;
+            if (@rem(i, 2) == 0) {
                 // even, this is a count
-                lastCount = try std.fmt.parseInt(i32, token, 10);
+                last = try std.fmt.parseInt(i32, token, 10);
             } else {
                 // This is the color
                 const color = std.mem.trimRight(u8, token, ",;");
-                // switch (color) {
-                //     "red" =>
-                // }
+                if (std.mem.eql(u8, color, "red")) {
+                    r = @max(last, r);
+                } else if (std.mem.eql(u8, color, "green")) {
+                    g = @max(last, g);
+                } else if (std.mem.eql(u8, color, "blue")) {
+                    b = @max(last, b);
+                }
             }
         }
+
+        return .{ .id = id, .red = r, .green = g, .blue = b };
+    }
+
+    pub fn isPossible(self: Game, red: i32, green: i32, blue: i32) bool {
+        return self.red <= red and self.green <= green and self.blue <= blue;
     }
 };
 
-test "parse revealed" {
+test "parse game" {
     const example: []const u8 = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green";
-    const info = try GameInfo.parse_revealed(example);
-    try expect(info.id == 1);
-    try expect(info.red == 4);
-    try expect(info.green == 2);
-    try expect(info.blue == 6);
+    const game = try Game.fromLine(example);
+    try expect(game.id == 1);
+    try expect(game.red == 4);
+    try expect(game.green == 2);
+    try expect(game.blue == 6);
 }
 
-fn find_impossible(chars: []const u8) !i32 {
-    return 1;
+fn findPossible(chars: []const u8, red: i32, green: i32, blue: i32) !i32 {
+    var it = std.mem.splitAny(u8, chars, "\n");
+    var ret: i32 = 0;
+
+    while (it.next()) |line| {
+        if (line.len == 0) {
+            break;
+        }
+        const game = try Game.fromLine(line);
+        if (game.isPossible(red, green, blue)) {
+            ret += game.id;
+        }
+    }
+    return ret;
 }
 
-pub fn main() !void {}
+pub fn main() !void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+    const buffer = try std.io.getStdIn().readToEndAlloc(allocator, 5 * 1_000_000_000);
+    const possible = try findPossible(buffer, 12, 13, 14);
+    std.debug.print("Possible Games: {}\n", .{possible});
+}
