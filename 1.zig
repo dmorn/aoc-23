@@ -35,6 +35,7 @@ const PatternMatch = struct {
     match: Match,
 };
 
+// TODO: std.ComtimeStringMap!
 const Lookup = [_]PatternMatch{
     .{ .pattern = "z", .match = .partial },
     .{ .pattern = "ze", .match = .partial },
