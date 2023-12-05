@@ -15,39 +15,74 @@ test "read_calibration" {
     try expect(try read_calibration(example) == 281);
 }
 
-const Match = enum { partial, full, none };
+const Match = enum(u8) {
+    none,
+    partial,
+    zero = 48,
+    one = 49,
+    two = 50,
+    three = 51,
+    four = 52,
+    five = 53,
+    six = 54,
+    seven = 55,
+    eight = 56,
+    nine = 57,
+};
 
-const SpelledDigit = struct {
+const PatternMatch = struct {
     pattern: []const u8,
-    value: u8,
+    match: Match,
+};
 
-    pub fn match(self: SpelledDigit, pattern: []u8) Match {
-        if (pattern.len > self.pattern.len) {
-            return .none;
+const Lookup = [_]PatternMatch{
+    .{ .pattern = "z", .match = .partial },
+    .{ .pattern = "ze", .match = .partial },
+    .{ .pattern = "zer", .match = .partial },
+    .{ .pattern = "zero", .match = .zero },
+    .{ .pattern = "o", .match = .partial },
+    .{ .pattern = "on", .match = .partial },
+    .{ .pattern = "one", .match = .one },
+    .{ .pattern = "t", .match = .partial },
+    .{ .pattern = "tw", .match = .partial },
+    .{ .pattern = "two", .match = .two },
+    .{ .pattern = "th", .match = .partial },
+    .{ .pattern = "thr", .match = .partial },
+    .{ .pattern = "thre", .match = .partial },
+    .{ .pattern = "three", .match = .three },
+    .{ .pattern = "f", .match = .partial },
+    .{ .pattern = "fo", .match = .partial },
+    .{ .pattern = "fou", .match = .partial },
+    .{ .pattern = "four", .match = .four },
+    .{ .pattern = "fi", .match = .partial },
+    .{ .pattern = "fiv", .match = .partial },
+    .{ .pattern = "five", .match = .five },
+    .{ .pattern = "s", .match = .partial },
+    .{ .pattern = "si", .match = .partial },
+    .{ .pattern = "six", .match = .six },
+    .{ .pattern = "se", .match = .partial },
+    .{ .pattern = "sev", .match = .partial },
+    .{ .pattern = "seve", .match = .partial },
+    .{ .pattern = "seven", .match = .seven },
+    .{ .pattern = "e", .match = .partial },
+    .{ .pattern = "ei", .match = .partial },
+    .{ .pattern = "eig", .match = .partial },
+    .{ .pattern = "eigh", .match = .partial },
+    .{ .pattern = "eight", .match = .eight },
+    .{ .pattern = "n", .match = .partial },
+    .{ .pattern = "ni", .match = .partial },
+    .{ .pattern = "nin", .match = .partial },
+    .{ .pattern = "nine", .match = .nine },
+};
+
+fn match(chars: []const u8) Match {
+    for (Lookup) |item| {
+        if (std.mem.eql(u8, item.pattern, chars)) {
+            return item.match;
         }
-        const submatch: []const u8 = self.pattern[0..pattern.len];
-        if (std.mem.eql(u8, submatch, pattern)) {
-            if (self.pattern.len == pattern.len) {
-                return .full;
-            }
-            return .partial;
-        }
-        return .none;
     }
-};
-
-const lookup = [_]SpelledDigit{
-    SpelledDigit{ .pattern = "zero", .value = 48 },
-    SpelledDigit{ .pattern = "one", .value = 49 },
-    SpelledDigit{ .pattern = "two", .value = 50 },
-    SpelledDigit{ .pattern = "three", .value = 51 },
-    SpelledDigit{ .pattern = "four", .value = 52 },
-    SpelledDigit{ .pattern = "five", .value = 53 },
-    SpelledDigit{ .pattern = "six", .value = 54 },
-    SpelledDigit{ .pattern = "seven", .value = 55 },
-    SpelledDigit{ .pattern = "eight", .value = 56 },
-    SpelledDigit{ .pattern = "nine", .value = 57 },
-};
+    return .none;
+}
 
 fn read_calibration_line(chars: []u8) !i32 {
     var from: u8 = 0;
@@ -60,26 +95,17 @@ fn read_calibration_line(chars: []u8) !i32 {
             idx += 1;
             from = @intCast(i + 1);
         } else {
-            const part: []u8 = chars[from .. i + 1];
-            var has_matched: bool = false;
-
-            loop: for (lookup) |item| {
-                switch (item.match(part)) {
-                    .partial => has_matched = true,
-                    .full => {
-                        digits[idx] = item.value;
-                        idx += 1;
-                        // Include the last char of the match, they
-                        // might be overlapping
-                        from = @intCast(i);
-                        has_matched = true;
-                        break :loop;
-                    },
-                    .none => {},
-                }
-            }
-            if (!has_matched) {
-                from += 1;
+            const m = match(chars[from .. i + 1]);
+            switch (m) {
+                .none => from += 1,
+                .partial => {},
+                else => {
+                    digits[idx] = @intFromEnum(m);
+                    idx += 1;
+                    // Include the last char of the match, they
+                    // might be overlapping
+                    from = @intCast(i);
+                },
             }
         }
     }
