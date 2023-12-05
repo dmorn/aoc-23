@@ -65,6 +65,10 @@ const Game = struct {
     pub fn isPossible(self: Game, red: i32, green: i32, blue: i32) bool {
         return self.red <= red and self.green <= green and self.blue <= blue;
     }
+
+    pub fn power(self: Game) i32 {
+        return self.red * self.green * self.blue;
+    }
 };
 
 test "parse game" {
@@ -92,12 +96,32 @@ fn findPossible(chars: []const u8, red: i32, green: i32, blue: i32) !i32 {
     return ret;
 }
 
+fn computePower(chars: []const u8) !i32 {
+    var it = std.mem.splitAny(u8, chars, "\n");
+    var ret: i32 = 0;
+
+    while (it.next()) |line| {
+        if (line.len == 0) {
+            break;
+        }
+        const game = try Game.fromLine(line);
+        ret += game.power();
+    }
+    return ret;
+}
+
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
     const allocator = arena.allocator();
     const buffer = try std.io.getStdIn().readToEndAlloc(allocator, 5 * 1_000_000_000);
-    const possible = try findPossible(buffer, 12, 13, 14);
-    std.debug.print("Possible Games: {}\n", .{possible});
+
+    if (std.os.argv.len > 1) {
+        const power = try computePower(buffer);
+        std.debug.print("Power: {}\n", .{power});
+    } else {
+        const possible = try findPossible(buffer, 12, 13, 14);
+        std.debug.print("Possible Games: {}\n", .{possible});
+    }
 }
