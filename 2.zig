@@ -19,8 +19,24 @@ const GameInfo = struct {
     green: i32,
     blue: i32,
 
-    pub fn parse_revealed(chars: []const u8) !GameInfo {
-        _ = chars;
+    pub fn parse_revealed(self: GameInfo, chars: []const u8) !GameInfo {
+        const it = std.mem.splitAny(u8, chars, " ");
+        _ = it.next(); // Game
+        self.id = try std.fmt.parseInt(i32, std.mem.trimRight(u8, it.next(), ":"), 10);
+
+        var lastCount: i32 = 0;
+        for (it, 0..) |token, i| {
+            if (i % 2 == 0) {
+                // even, this is a count
+                lastCount = try std.fmt.parseInt(i32, token, 10);
+            } else {
+                // This is the color
+                const color = std.mem.trimRight(u8, token, ",;");
+                // switch (color) {
+                //     "red" =>
+                // }
+            }
+        }
     }
 };
 
@@ -34,11 +50,6 @@ test "parse revealed" {
 }
 
 fn find_impossible(chars: []const u8) !i32 {
-    const it = std.mem.splitAny(u8, chars, " ");
-    _ = it.next(); // Game
-    try std.fmt.parseInt(i32, mem.trimRight(u8, it.next(), ":"), 10);
-    _ = chars;
-
     return 1;
 }
 

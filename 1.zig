@@ -36,53 +36,50 @@ const PatternMatch = struct {
 };
 
 // TODO: std.ComtimeStringMap!
-const Lookup = [_]PatternMatch{
-    .{ .pattern = "z", .match = .partial },
-    .{ .pattern = "ze", .match = .partial },
-    .{ .pattern = "zer", .match = .partial },
-    .{ .pattern = "zero", .match = .zero },
-    .{ .pattern = "o", .match = .partial },
-    .{ .pattern = "on", .match = .partial },
-    .{ .pattern = "one", .match = .one },
-    .{ .pattern = "t", .match = .partial },
-    .{ .pattern = "tw", .match = .partial },
-    .{ .pattern = "two", .match = .two },
-    .{ .pattern = "th", .match = .partial },
-    .{ .pattern = "thr", .match = .partial },
-    .{ .pattern = "thre", .match = .partial },
-    .{ .pattern = "three", .match = .three },
-    .{ .pattern = "f", .match = .partial },
-    .{ .pattern = "fo", .match = .partial },
-    .{ .pattern = "fou", .match = .partial },
-    .{ .pattern = "four", .match = .four },
-    .{ .pattern = "fi", .match = .partial },
-    .{ .pattern = "fiv", .match = .partial },
-    .{ .pattern = "five", .match = .five },
-    .{ .pattern = "s", .match = .partial },
-    .{ .pattern = "si", .match = .partial },
-    .{ .pattern = "six", .match = .six },
-    .{ .pattern = "se", .match = .partial },
-    .{ .pattern = "sev", .match = .partial },
-    .{ .pattern = "seve", .match = .partial },
-    .{ .pattern = "seven", .match = .seven },
-    .{ .pattern = "e", .match = .partial },
-    .{ .pattern = "ei", .match = .partial },
-    .{ .pattern = "eig", .match = .partial },
-    .{ .pattern = "eigh", .match = .partial },
-    .{ .pattern = "eight", .match = .eight },
-    .{ .pattern = "n", .match = .partial },
-    .{ .pattern = "ni", .match = .partial },
-    .{ .pattern = "nin", .match = .partial },
-    .{ .pattern = "nine", .match = .nine },
-};
+// NOTE: benchmarks show that the previous approach with substring
+// matching leads to similar results.
+const lookup = std.ComptimeStringMap(Match, .{
+    .{ "z", .partial },
+    .{ "ze", .partial },
+    .{ "zer", .partial },
+    .{ "zero", .zero },
+    .{ "o", .partial },
+    .{ "on", .partial },
+    .{ "one", .one },
+    .{ "t", .partial },
+    .{ "tw", .partial },
+    .{ "two", .two },
+    .{ "th", .partial },
+    .{ "thr", .partial },
+    .{ "thre", .partial },
+    .{ "three", .three },
+    .{ "f", .partial },
+    .{ "fo", .partial },
+    .{ "fou", .partial },
+    .{ "four", .four },
+    .{ "fi", .partial },
+    .{ "fiv", .partial },
+    .{ "five", .five },
+    .{ "s", .partial },
+    .{ "si", .partial },
+    .{ "six", .six },
+    .{ "se", .partial },
+    .{ "sev", .partial },
+    .{ "seve", .partial },
+    .{ "seven", .seven },
+    .{ "e", .partial },
+    .{ "ei", .partial },
+    .{ "eig", .partial },
+    .{ "eigh", .partial },
+    .{ "eight", .eight },
+    .{ "n", .partial },
+    .{ "ni", .partial },
+    .{ "nin", .partial },
+    .{ "nine", .nine },
+});
 
 fn match(chars: []const u8) Match {
-    for (Lookup) |item| {
-        if (std.mem.eql(u8, item.pattern, chars)) {
-            return item.match;
-        }
-    }
-    return .none;
+    return lookup.get(chars) orelse .none;
 }
 
 fn read_calibration_line(chars: []u8) !i32 {
