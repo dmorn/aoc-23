@@ -1,7 +1,12 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
-test "read_calibration" {
+// With -O ReleaseFast. W/o it we're around 80ms.
+// Benchmark 1: ./main
+//   Time (mean ± σ):      11.6 ms ±   0.1 ms    [User: 10.7 ms, System: 0.5 ms]
+//   Range (min … max):    11.3 ms …  12.1 ms    256 runs
+
+test "read calibration" {
     const example: []const u8 =
         \\two1nine
         \\eightwothree
@@ -12,7 +17,7 @@ test "read_calibration" {
         \\7pqrstsixteen
         \\
     ;
-    try expect(try read_calibration(example) == 281);
+    try expect(try readCalibration(example) == 281);
 }
 
 const Match = enum(u8) {
@@ -30,14 +35,6 @@ const Match = enum(u8) {
     nine = 57,
 };
 
-const PatternMatch = struct {
-    pattern: []const u8,
-    match: Match,
-};
-
-// TODO: std.ComtimeStringMap!
-// NOTE: benchmarks show that the previous approach with substring
-// matching leads to similar results.
 const lookup = std.ComptimeStringMap(Match, .{
     .{ "z", .partial },
     .{ "ze", .partial },
@@ -82,7 +79,7 @@ fn match(chars: []const u8) Match {
     return lookup.get(chars) orelse .none;
 }
 
-fn read_calibration_line(chars: []u8) !i32 {
+fn readCalibrationLine(chars: []u8) !i32 {
     var from: u8 = 0;
     var idx: u8 = 0;
     var digits = [_]u8{0} ** 256;
@@ -116,7 +113,7 @@ fn read_calibration_line(chars: []u8) !i32 {
     }
 }
 
-fn read_calibration(chars: []const u8) !i32 {
+fn readCalibration(chars: []const u8) !i32 {
     var calibration: i32 = 0;
     var line = [_]u8{0} ** 256;
     var size: u8 = 0;
@@ -124,7 +121,7 @@ fn read_calibration(chars: []const u8) !i32 {
     for (chars) |x| {
         switch (x) {
             10 => {
-                calibration += try read_calibration_line(line[0..size]);
+                calibration += try readCalibrationLine(line[0..size]);
                 size = 0;
             },
             else => {
@@ -142,6 +139,6 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
     const buffer = try std.io.getStdIn().readToEndAlloc(allocator, 5 * 1_000_000_000);
-    const calibration = try read_calibration(buffer);
+    const calibration = try readCalibration(buffer);
     std.debug.print("Calibration: {}\n", .{calibration});
 }
